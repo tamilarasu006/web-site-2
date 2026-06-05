@@ -535,7 +535,7 @@ const LoginPage = () => {
         </form>
         <p className="auth-link forgot-link"><Link to="/forgot-password">Forgot Password?</Link></p>
         <p className="auth-link">Don't have an account? <Link to="/register">Register</Link></p>
-        <p className="admin-hint">Admin login: admin@tamilarasuenterprises.com / any password</p>
+
       </div>
     </div>
   );
