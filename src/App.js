@@ -488,6 +488,34 @@ const OrderConfirmationPage = () => {
   );
 };
 
+const ForgotPasswordPage = () => {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  return (
+    <div className="page-container auth-page">
+      <div className="auth-box">
+        <h1>Forgot Password</h1>
+        {submitted ? (
+          <div className="reset-success">
+            <div className="reset-icon">✅</div>
+            <p>If an account exists for <strong>{email}</strong>, a password reset link has been sent.</p>
+            <Link to="/login" className="btn-primary btn-large" style={{display:'block',textAlign:'center',marginTop:'1rem'}}>Back to Login</Link>
+          </div>
+        ) : (
+          <>
+            <p>Enter your email address and we'll send you a link to reset your password.</p>
+            <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
+              <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <button type="submit" className="btn-primary btn-large">Send Reset Link</button>
+            </form>
+            <p className="auth-link"><Link to="/login">← Back to Login</Link></p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const LoginPage = () => {
   const { login } = useApp();
   const [email, setEmail] = useState('');
@@ -505,6 +533,7 @@ const LoginPage = () => {
           <div className="user-type"><label><input type="radio" name="type" checked={userType === 'individual'} onChange={() => setUserType('individual')} /> Individual Customer</label><label><input type="radio" name="type" checked={userType === 'business'} onChange={() => setUserType('business')} /> Business Buyer</label></div>
           <button type="submit" className="btn-primary btn-large">Login</button>
         </form>
+        <p className="auth-link forgot-link"><Link to="/forgot-password">Forgot Password?</Link></p>
         <p className="auth-link">Don't have an account? <Link to="/register">Register</Link></p>
         <p className="admin-hint">Admin login: admin@tamilarasuenterprises.com / any password</p>
       </div>
@@ -536,8 +565,22 @@ const RegisterPage = () => {
 };
 
 const DashboardPage = () => {
-  const { user, orders, wishlist } = useApp();
+  const { user, orders, wishlist, showNotification } = useApp();
   const navigate = useNavigate();
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
+  const [pwError, setPwError] = useState('');
+
+  const handleChangePassword = (e) => {
+    e.preventDefault();
+    if (pwForm.newPw.length < 6) { setPwError('New password must be at least 6 characters.'); return; }
+    if (pwForm.newPw !== pwForm.confirm) { setPwError('Passwords do not match.'); return; }
+    setPwError('');
+    setPwForm({ current: '', newPw: '', confirm: '' });
+    setShowChangePassword(false);
+    showNotification('Password changed successfully!');
+  };
+
   if (!user) return <div className="page-container"><h1>Please Login</h1><button className="btn-primary" onClick={() => navigate('/login')}>Login</button></div>;
   return (
     <div className="page-container dashboard-page">
@@ -546,6 +589,19 @@ const DashboardPage = () => {
         <div className="dashboard-card profile-card">
           <h2>Profile</h2>
           <div className="profile-info"><p><strong>Name:</strong> {user.name}</p><p><strong>Email:</strong> {user.email}</p><p><strong>Type:</strong> {user.type === 'business' ? 'Business Buyer' : 'Individual Customer'}</p>{user.company && <p><strong>Company:</strong> {user.company}</p>}</div>
+          <button className="btn-secondary" style={{marginTop:'1rem'}} onClick={() => setShowChangePassword(!showChangePassword)}>
+            🔒 {showChangePassword ? 'Cancel' : 'Change Password'}
+          </button>
+          {showChangePassword && (
+            <form className="change-password-form" onSubmit={handleChangePassword}>
+              <h3>Change Password</h3>
+              {pwError && <p className="pw-error">{pwError}</p>}
+              <input type="password" placeholder="Current Password" value={pwForm.current} onChange={(e) => setPwForm({...pwForm, current: e.target.value})} required />
+              <input type="password" placeholder="New Password" value={pwForm.newPw} onChange={(e) => setPwForm({...pwForm, newPw: e.target.value})} required />
+              <input type="password" placeholder="Confirm New Password" value={pwForm.confirm} onChange={(e) => setPwForm({...pwForm, confirm: e.target.value})} required />
+              <button type="submit" className="btn-primary">Update Password</button>
+            </form>
+          )}
         </div>
         <div className="dashboard-card stats-card">
           <h2>Quick Stats</h2>
@@ -863,6 +919,7 @@ function App() {
           <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
