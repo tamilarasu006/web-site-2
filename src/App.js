@@ -91,7 +91,7 @@ const AppProvider = ({ children }) => {
   const addProduct = (product) => { const newProduct = { ...product, id: Math.max(...products.map(p => p.id)) + 1 }; setProducts([...products, newProduct]); showNotification('Product added'); };
   const login = (email, password, userType) => {
     const mockUser = { id: 'user-' + Date.now(), email, name: email.split('@')[0], type: userType, company: userType === 'business' ? 'Global Foods Ltd.' : null, addresses: [] };
-    setUser(mockUser); if (email === 'admin@freshglobal.com') setIsAdmin(true); showNotification('Welcome back!');
+    setUser(mockUser); if (email === 'admin@tamilarasuenterprises.com') setIsAdmin(true); showNotification('Welcome back!');
   };
   const register = (data) => { const mockUser = { id: 'user-' + Date.now(), ...data, addresses: [] }; setUser(mockUser); showNotification('Account created!'); };
   const logout = () => { setUser(null); setIsAdmin(false); showNotification('Logged out'); };
@@ -128,7 +128,7 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="nav-container">
-        <Link to="/" className="logo"><span className="logo-icon">🌿</span><span>FreshGlobal</span></Link>
+        <Link to="/" className="logo"><span className="logo-icon">🌿</span><span>TAMILARASU ENTERPRISES</span></Link>
         <div className="nav-search-desktop">
           <form onSubmit={(e) => { e.preventDefault(); navigate('/products'); }}>
             <input type="text" placeholder="Search products, origins..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="search-input" />
@@ -181,7 +181,7 @@ const Footer = () => (
   <footer className="footer">
     <div className="footer-grid">
       <div>
-        <h3>🌿 FreshGlobal Trade Co.</h3>
+        <h3>🌿 TAMILARASU ENTERPRISES</h3>
         <p>Connecting the world with premium fresh produce since 2015.</p>
         <div className="social-links"><a href="#">📘</a><a href="#">📸</a><a href="#">🐦</a><a href="#">💼</a></div>
       </div>
@@ -195,10 +195,10 @@ const Footer = () => (
       </div>
       <div>
         <h4>Contact</h4>
-        <p>📍 123 Trade Center, Rotterdam, Netherlands</p><p>📞 +31 10 123 4567</p><p>✉️ info@freshglobal.com</p><p>💬 WhatsApp: +31 6 1234 5678</p>
+        <p>📍 123 Trade Center, Rotterdam, Netherlands</p><p>📞 +31 10 123 4567</p><p>✉️ info@tamilarasuenterprises.com</p><p>💬 WhatsApp: +31 6 1234 5678</p>
       </div>
     </div>
-    <div className="footer-bottom"><p>© 2026 FreshGlobal Trade Co. All rights reserved.</p></div>
+    <div className="footer-bottom"><p>© 2026 TAMILARASU ENTERPRISES. All rights reserved.</p></div>
   </footer>
 );
 
@@ -273,7 +273,7 @@ const HomePage = () => {
         <div className="products-grid">{seasonal.map(product => <ProductCard key={product.id} product={product} />)}</div>
       </section>
       <section className="why-us">
-        <h2>Why FreshGlobal?</h2>
+        <h2>Why TAMILARASU ENTERPRISES?</h2>
         <div className="features-grid">
           <div className="feature-card"><div className="feature-icon">🌡️</div><h3>Temperature Controlled</h3><p>End-to-end cold chain logistics ensuring product freshness from farm to destination.</p></div>
           <div className="feature-card"><div className="feature-icon">✅</div><h3>Certified Quality</h3><p>Organic, Fair Trade, Global G.A.P., and Halal certifications available.</p></div>
@@ -498,7 +498,7 @@ const LoginPage = () => {
     <div className="page-container auth-page">
       <div className="auth-box">
         <h1>Welcome Back</h1>
-        <p>Login to your FreshGlobal account</p>
+        <p>Login to your TAMILARASU ENTERPRISES account</p>
         <form onSubmit={(e) => { e.preventDefault(); login(email, password, userType); navigate('/'); }}>
           <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -506,7 +506,7 @@ const LoginPage = () => {
           <button type="submit" className="btn-primary btn-large">Login</button>
         </form>
         <p className="auth-link">Don't have an account? <Link to="/register">Register</Link></p>
-        <p className="admin-hint">Admin login: admin@freshglobal.com / any password</p>
+        <p className="admin-hint">Admin login: admin@tamilarasuenterprises.com / any password</p>
       </div>
     </div>
   );
@@ -520,7 +520,7 @@ const RegisterPage = () => {
     <div className="page-container auth-page">
       <div className="auth-box">
         <h1>Create Account</h1>
-        <p>Join FreshGlobal for fresh produce delivered worldwide</p>
+        <p>Join TAMILARASU ENTERPRISES for fresh produce delivered worldwide</p>
         <form onSubmit={(e) => { e.preventDefault(); register(formData); navigate('/'); }}>
           <input placeholder="Full Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
           <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
@@ -629,12 +629,12 @@ const WishlistPage = () => {
 
 const AboutPage = () => (
   <div className="page-container about-page">
-    <h1>About FreshGlobal Trade Co.</h1>
+    <h1>About TAMILARASU ENTERPRISES</h1>
     <div className="about-section">
       <div className="about-image"><img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=600" alt="Fresh market" /></div>
       <div className="about-content">
         <h2>Our Story</h2>
-        <p>Founded in 2015 in Rotterdam, Netherlands, FreshGlobal Trade Co. began with a simple mission: to connect the world's best fresh produce with businesses and consumers who demand quality. What started as a small import-export operation between the Netherlands and Spain has grown into a global network spanning 50+ countries.</p>
+        <p>Founded in 2015 in Rotterdam, Netherlands, TAMILARASU ENTERPRISES began with a simple mission: to connect the world's best fresh produce with businesses and consumers who demand quality. What started as a small import-export operation between the Netherlands and Spain has grown into a global network spanning 50+ countries.</p>
         <p>Today, we serve over 2,000 B2B clients including Michelin-starred restaurants, international hotel chains, and major supermarket groups, alongside thousands of individual customers who trust us for their weekly fresh produce delivery.</p>
       </div>
     </div>
@@ -686,7 +686,7 @@ const ContactPage = () => {
           <h2>Get in Touch</h2>
           <div className="contact-item"><span>📍</span><div><h3>Headquarters</h3><p>123 Trade Center, Rotterdam 3011 AA, Netherlands</p></div></div>
           <div className="contact-item"><span>📞</span><div><h3>Phone</h3><p>+31 10 123 4567 (Mon-Fri 9:00-18:00 CET)</p></div></div>
-          <div className="contact-item"><span>✉️</span><div><h3>Email</h3><p>info@freshglobal.com<br/>support@freshglobal.com</p></div></div>
+          <div className="contact-item"><span>✉️</span><div><h3>Email</h3><p>info@tamilarasuenterprises.com<br/>support@tamilarasuenterprises.com</p></div></div>
           <div className="contact-item"><span>💬</span><div><h3>WhatsApp</h3><p>+31 6 1234 5678 (24/7 for urgent orders)</p></div></div>
           <div className="contact-item"><span>🌐</span><div><h3>Regional Offices</h3><p>Dubai • Singapore • São Paulo • Mumbai</p></div></div>
         </div>
