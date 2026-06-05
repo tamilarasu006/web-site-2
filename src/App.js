@@ -195,7 +195,7 @@ const Footer = () => (
       </div>
       <div>
         <h4>Contact</h4>
-        <p>📍 123 Trade Center, Rotterdam, Netherlands</p><p>📞 +31 10 123 4567</p><p>✉️ info@tamilarasuenterprises.com</p><p>💬 WhatsApp: +31 6 1234 5678</p>
+        <p>📍 No:02A, Muthurama Pillai Street, Uthiramerur, Kanchipuram (603406)</p><p>📞 +91 6383772487</p><p>✉️ info@tamilarasuenterprises.com</p><p>💬 WhatsApp: +91 6383772487</p>
       </div>
     </div>
     <div className="footer-bottom"><p>© 2026 TAMILARASU ENTERPRISES. All rights reserved.</p></div>
@@ -740,10 +740,10 @@ const ContactPage = () => {
       <div className="contact-layout">
         <div className="contact-info">
           <h2>Get in Touch</h2>
-          <div className="contact-item"><span>📍</span><div><h3>Headquarters</h3><p>123 Trade Center, Rotterdam 3011 AA, Netherlands</p></div></div>
-          <div className="contact-item"><span>📞</span><div><h3>Phone</h3><p>+31 10 123 4567 (Mon-Fri 9:00-18:00 CET)</p></div></div>
+          <div className="contact-item"><span>📍</span><div><h3>Headquarters</h3><p>No:02A, Muthurama Pillai Street, Uthiramerur, Kanchipuram (603406)</p></div></div>
+          <div className="contact-item"><span>📞</span><div><h3>Phone</h3><p>+91 6383772487 (Mon-Fri 9:00-18:00 IST)</p></div></div>
           <div className="contact-item"><span>✉️</span><div><h3>Email</h3><p>info@tamilarasuenterprises.com<br/>support@tamilarasuenterprises.com</p></div></div>
-          <div className="contact-item"><span>💬</span><div><h3>WhatsApp</h3><p>+31 6 1234 5678 (24/7 for urgent orders)</p></div></div>
+          <div className="contact-item"><span>💬</span><div><h3>WhatsApp</h3><p>+91 6383772487 (24/7 for urgent orders)</p></div></div>
           <div className="contact-item"><span>🌐</span><div><h3>Regional Offices</h3><p>Dubai • Singapore • São Paulo • Mumbai</p></div></div>
         </div>
         <div className="contact-form-wrapper">
