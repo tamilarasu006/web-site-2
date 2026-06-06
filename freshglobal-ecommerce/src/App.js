@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo, createContext, useContext } from 'react';
-import { BrowserRouter, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import './App.css';
+
+// ─── API base URL ─────────────────────────────────────────────────────────────
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // ============================================
 // CONTEXT & DATA
@@ -45,23 +48,36 @@ const SHIPPING_RATES = {
 };
 
 const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(() => { const saved = localStorage.getItem('freshglobal_user'); return saved ? JSON.parse(saved) : null; });
+  const [user, setUser] = useState(null);
   const [cart, setCart] = useState(() => { const saved = localStorage.getItem('freshglobal_cart'); return saved ? JSON.parse(saved) : []; });
   const [wishlist, setWishlist] = useState(() => { const saved = localStorage.getItem('freshglobal_wishlist'); return saved ? JSON.parse(saved) : []; });
   const [orders, setOrders] = useState(() => { const saved = localStorage.getItem('freshglobal_orders'); return saved ? JSON.parse(saved) : []; });
-  const [registeredUsers, setRegisteredUsers] = useState(() => { const saved = localStorage.getItem('freshglobal_users'); return saved ? JSON.parse(saved) : [{ id: 'admin-001', email: 'admin@tamilarasuenterprises.com', password: 'admin123', name: 'Admin', type: 'admin', addresses: [] }]; });
+  const [registeredUsers, setRegisteredUsers] = useState(() => { const saved = localStorage.getItem('freshglobal_users'); return saved ? JSON.parse(saved) : []; });
   const [products, setProducts] = useState(SAMPLE_PRODUCTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ category: 'All', origin: 'All', priceMin: 0, priceMax: 100, certification: 'All', seasonal: 'All' });
-  const [isAdmin, setIsAdmin] = useState(() => { const saved = localStorage.getItem('freshglobal_isadmin'); return saved === 'true'; });
+  const [isAdmin, setIsAdmin] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Restore session on app load
+  useEffect(() => {
+    fetch(API_URL + '/api/auth/me', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data?.user) {
+          setUser(data.data.user);
+          setIsAdmin(data.data.user.type === 'admin');
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAuthLoading(false));
+  }, []);
 
   useEffect(() => { localStorage.setItem('freshglobal_cart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('freshglobal_wishlist', JSON.stringify(wishlist)); }, [wishlist]);
   useEffect(() => { localStorage.setItem('freshglobal_orders', JSON.stringify(orders)); }, [orders]);
-  useEffect(() => { localStorage.setItem('freshglobal_user', JSON.stringify(user)); }, [user]);
   useEffect(() => { localStorage.setItem('freshglobal_users', JSON.stringify(registeredUsers)); }, [registeredUsers]);
-  useEffect(() => { localStorage.setItem('freshglobal_isadmin', isAdmin ? 'true' : 'false'); }, [isAdmin]);
 
   const showNotification = (message, type = 'success') => { setNotification({ message, type }); setTimeout(() => setNotification(null), 3000); };
 
@@ -92,25 +108,56 @@ const AppProvider = ({ children }) => {
   const updateProduct = (id, updates) => { setProducts(products.map(p => p.id === id ? { ...p, ...updates } : p)); showNotification('Product updated'); };
   const deleteProduct = (id) => { setProducts(products.filter(p => p.id !== id)); showNotification('Product deleted'); };
   const addProduct = (product) => { const newProduct = { ...product, id: Math.max(...products.map(p => p.id)) + 1 }; setProducts([...products, newProduct]); showNotification('Product added'); };
-  const login = (email, password, userType) => {
-    const found = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (!found) { showNotification('No account found with this email. Please register first.', 'error'); return false; }
-    if (found.password && found.password !== password) { showNotification('Incorrect password. Please try again.', 'error'); return false; }
-    setUser(found);
-    if (found.email.toLowerCase() === 'admin@tamilarasuenterprises.com') { setIsAdmin(true); } else { setIsAdmin(false); }
-    showNotification('Welcome back, ' + found.name + '!');
-    return true;
+  const login = async (email, password) => {
+    try {
+      const res = await fetch(API_URL + '/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.success && data.data?.user) {
+        setUser(data.data.user);
+        setIsAdmin(data.data.user.type === 'admin');
+        showNotification('Welcome back, ' + data.data.user.name + '!');
+        return { success: true };
+      }
+      showNotification(data.message || 'Login failed.', 'error');
+      return { success: false, message: data.message, unverified: data.unverified };
+    } catch {
+      showNotification('Network error. Please try again.', 'error');
+      return { success: false, message: 'Network error.' };
+    }
   };
-  const register = (data) => {
-    const exists = registeredUsers.find(u => u.email.toLowerCase() === data.email.toLowerCase());
-    if (exists) { showNotification('An account with this email already exists. Please login.', 'error'); return false; }
-    const newUser = { id: 'user-' + Date.now(), ...data, addresses: [] };
-    setRegisteredUsers(prev => [...prev, newUser]);
-    setUser(newUser);
-    showNotification('Account created! Welcome to TAMILARASU ENTERPRISES, ' + data.name + '!');
-    return true;
+  const register = async (data) => {
+    try {
+      const res = await fetch(API_URL + '/api/auth/register', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.success) {
+        showNotification('Account created! Please check your email for the OTP.');
+        return { success: true, email: data.email };
+      }
+      showNotification(result.message || 'Registration failed.', 'error');
+      return { success: false, message: result.message };
+    } catch {
+      showNotification('Network error. Please try again.', 'error');
+      return { success: false, message: 'Network error.' };
+    }
   };
-  const logout = () => { setUser(null); setIsAdmin(false); localStorage.setItem('freshglobal_isadmin', 'false'); showNotification('Logged out successfully'); };
+  const logout = async () => {
+    try {
+      await fetch(API_URL + '/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {}
+    setUser(null);
+    setIsAdmin(false);
+    showNotification('Logged out successfully');
+  };
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -128,7 +175,7 @@ const AppProvider = ({ children }) => {
   const cartWeight = cart.reduce((sum, item) => sum + item.qty, 0);
 
   return (
-    <AppContext.Provider value={{ user, cart, wishlist, orders, products, filteredProducts, isAdmin, searchQuery, setSearchQuery, filters, setFilters, addToCart, removeFromCart, updateCartQty, toggleWishlist, calculateShipping, placeOrder, updateOrderStatus, updateProduct, deleteProduct, addProduct, login, register, logout, cartTotal, cartWeight, notification, showNotification, COUNTRIES, SHIPPING_RATES, registeredUsers }}>
+    <AppContext.Provider value={{ user, cart, wishlist, orders, products, filteredProducts, isAdmin, searchQuery, setSearchQuery, filters, setFilters, addToCart, removeFromCart, updateCartQty, toggleWishlist, calculateShipping, placeOrder, updateOrderStatus, updateProduct, deleteProduct, addProduct, login, register, logout, cartTotal, cartWeight, notification, showNotification, COUNTRIES, SHIPPING_RATES, registeredUsers, authLoading }}>
       {children}
     </AppContext.Provider>
   );
@@ -507,6 +554,21 @@ const OrderConfirmationPage = () => {
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await fetch(API_URL + '/api/auth/forgot-password', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+    } catch {}
+    setSubmitted(true);
+    setLoading(false);
+  };
   return (
     <div className="page-container auth-page">
       <div className="auth-box">
@@ -520,9 +582,9 @@ const ForgotPasswordPage = () => {
         ) : (
           <>
             <p>Enter your email address and we'll send you a link to reset your password.</p>
-            <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
+            <form onSubmit={handleSubmit}>
               <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <button type="submit" className="btn-primary btn-large">Send Reset Link</button>
+              <button type="submit" className="btn-primary btn-large" disabled={loading}>{loading ? 'Sending...' : 'Send Reset Link'}</button>
             </form>
             <p className="auth-link"><Link to="/login">← Back to Login</Link></p>
           </>
@@ -536,14 +598,22 @@ const LoginPage = () => {
   const { login } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('individual');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    const success = login(email, password, userType);
-    if (success) { navigate('/'); } else { setError('Invalid email or password. Please check your credentials or register first.'); }
+    setLoading(true);
+    const result = await login(email, password);
+    setLoading(false);
+    if (result.success) {
+      navigate('/');
+    } else if (result.unverified) {
+      navigate('/verify-otp?email=' + encodeURIComponent(email));
+    } else {
+      setError(result.message || 'Invalid email or password. Please check your credentials or register first.');
+    }
   };
   return (
     <div className="page-container auth-page">
@@ -554,8 +624,7 @@ const LoginPage = () => {
         <form onSubmit={handleLogin}>
           <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          <div className="user-type"><label><input type="radio" name="type" checked={userType === 'individual'} onChange={() => setUserType('individual')} /> Individual Customer</label><label><input type="radio" name="type" checked={userType === 'business'} onChange={() => setUserType('business')} /> Business Buyer</label></div>
-          <button type="submit" className="btn-primary btn-large">Login</button>
+          <button type="submit" className="btn-primary btn-large" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
         </form>
         <p className="auth-link forgot-link"><Link to="/forgot-password">Forgot Password?</Link></p>
         <p className="auth-link">Don't have an account? <Link to="/register">Register</Link></p>
@@ -568,42 +637,37 @@ const RegisterPage = () => {
   const { register } = useApp();
   const [formData, setFormData] = useState({ name: '', email: '', password: '', type: 'individual', company: '' });
   const [error, setError] = useState('');
-  const [registered, setRegistered] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
-    const success = register(formData);
-    if (success) { setRegistered(true); setTimeout(() => navigate('/'), 3000); }
-    else { setError('An account with this email already exists. Please login instead.'); }
+    setLoading(true);
+    const result = await register(formData);
+    setLoading(false);
+    if (result.success) {
+      navigate('/verify-otp?email=' + encodeURIComponent(formData.email));
+    } else {
+      setError(result.message || 'An account with this email already exists. Please login instead.');
+    }
   };
   return (
     <div className="page-container auth-page">
       <div className="auth-box">
         <h1>Create Account</h1>
-        {registered ? (
-          <div className="register-success">
-            <div className="reset-icon">✅</div>
-            <h3>Account Created Successfully!</h3>
-            <p>Welcome to TAMILARASU ENTERPRISES, <strong>{formData.name}</strong>!</p>
-            <p>A confirmation has been sent to <strong>{formData.email}</strong>.</p>
-            <p>Redirecting to home page...</p>
-          </div>
-        ) : (
-          <>
-            <p>Join TAMILARASU ENTERPRISES for fresh produce delivered worldwide</p>
-            {error && <div className="auth-error">⚠️ {error}</div>}
-            <form onSubmit={handleRegister}>
-              <input placeholder="Full Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-              <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
-              <input type="password" placeholder="Password (min 6 characters)" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} minLength="6" required />
-              <div className="user-type"><label><input type="radio" name="type" checked={formData.type === 'individual'} onChange={() => setFormData({...formData, type: 'individual'})} /> Individual Customer</label><label><input type="radio" name="type" checked={formData.type === 'business'} onChange={() => setFormData({...formData, type: 'business'})} /> Business Buyer</label></div>
-              {formData.type === 'business' && <input placeholder="Company Name" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />}
-              <button type="submit" className="btn-primary btn-large">Create Account</button>
-            </form>
-            <p className="auth-link">Already have an account? <Link to="/login">Login</Link></p>
-          </>
-        )}
+        <>
+          <p>Join TAMILARASU ENTERPRISES for fresh produce delivered worldwide</p>
+          {error && <div className="auth-error">⚠️ {error}</div>}
+          <form onSubmit={handleRegister}>
+            <input placeholder="Full Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+            <input type="email" placeholder="Email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+            <input type="password" placeholder="Password (min 8 chars, uppercase, number, special)" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} required />
+            <div className="user-type"><label><input type="radio" name="type" checked={formData.type === 'individual'} onChange={() => setFormData({...formData, type: 'individual'})} /> Individual Customer</label><label><input type="radio" name="type" checked={formData.type === 'business'} onChange={() => setFormData({...formData, type: 'business'})} /> Business Buyer</label></div>
+            {formData.type === 'business' && <input placeholder="Company Name" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />}
+            <button type="submit" className="btn-primary btn-large" disabled={loading}>{loading ? 'Creating account...' : 'Create Account'}</button>
+          </form>
+          <p className="auth-link">Already have an account? <Link to="/login">Login</Link></p>
+        </>
       </div>
     </div>
   );
@@ -944,6 +1008,148 @@ const AdminPage = () => {
   );
 };
 
+// ─── OTP Verification Page ────────────────────────────────────────────────────
+const VerifyOTPPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { showNotification } = useApp();
+  const emailFromQuery = new URLSearchParams(location.search).get('email') || '';
+  const [email, setEmail] = useState(emailFromQuery);
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const inputRefs = React.useRef([]);
+
+  const handleDigitChange = (index, value) => {
+    if (!/^\d?$/.test(value)) return;
+    const next = [...digits];
+    next[index] = value;
+    setDigits(next);
+    if (value && index < 5) inputRefs.current[index + 1]?.focus();
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      setDigits(pasted.split(''));
+      inputRefs.current[5]?.focus();
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    const otp = digits.join('');
+    if (otp.length < 6) { setError('Please enter all 6 digits.'); return; }
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL + '/api/auth/verify-otp', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('Email verified! You can now log in.');
+        navigate('/login');
+      } else {
+        setError(data.message || 'Invalid OTP.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    }
+    setLoading(false);
+  };
+
+  const handleResend = async () => {
+    if (!email) { setError('Please enter your email address.'); return; }
+    setResending(true);
+    try {
+      const res = await fetch(API_URL + '/api/auth/resend-otp', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification('New OTP sent to your email.');
+        setDigits(['', '', '', '', '', '']);
+        setError('');
+      } else {
+        setError(data.message || 'Could not resend OTP.');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    }
+    setResending(false);
+  };
+
+  return (
+    <div className="page-container auth-page">
+      <div className="auth-box">
+        <h1>Verify Your Email</h1>
+        <p>Enter the 6-digit code sent to <strong>{email || 'your email'}</strong>.</p>
+        {!emailFromQuery && (
+          <input
+            type="email"
+            placeholder="Your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{ marginBottom: '1rem' }}
+          />
+        )}
+        {error && <div className="auth-error">⚠️ {error}</div>}
+        <form onSubmit={handleVerify}>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', margin: '1.5rem 0' }}>
+            {digits.map((d, i) => (
+              <input
+                key={i}
+                ref={(el) => (inputRefs.current[i] = el)}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={d}
+                onChange={(e) => handleDigitChange(i, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(i, e)}
+                onPaste={i === 0 ? handlePaste : undefined}
+                style={{
+                  width: '48px', height: '56px', fontSize: '24px', fontWeight: '700',
+                  textAlign: 'center', border: '2px solid #1a7a4a', borderRadius: '8px',
+                  outline: 'none', background: '#f0faf5', color: '#0d5c37',
+                }}
+              />
+            ))}
+          </div>
+          <button type="submit" className="btn-primary btn-large" disabled={loading} style={{ width: '100%' }}>
+            {loading ? 'Verifying...' : 'Verify OTP'}
+          </button>
+        </form>
+        <p style={{ marginTop: '1rem', textAlign: 'center' }}>
+          Didn't receive the code?{' '}
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            style={{ background: 'none', border: 'none', color: '#1a7a4a', cursor: 'pointer', fontWeight: 600, padding: 0 }}
+          >
+            {resending ? 'Sending...' : 'Resend OTP'}
+          </button>
+        </p>
+        <p className="auth-link" style={{ textAlign: 'center' }}><Link to="/login">← Back to Login</Link></p>
+      </div>
+    </div>
+  );
+};
+
 // ============================================
 // MAIN APP
 // ============================================
@@ -963,6 +1169,7 @@ function App() {
           <Route path="/order-confirmation/:id" element={<OrderConfirmationPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-otp" element={<VerifyOTPPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/orders" element={<OrdersPage />} />
