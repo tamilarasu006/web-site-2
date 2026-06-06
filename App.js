@@ -665,10 +665,9 @@ const AboutPage = () => (
     <div className="team-section">
       <h2>Leadership Team</h2>
       <div className="team-grid">
-        <div className="team-member"><div className="team-avatar">👨‍💼</div><h3>Saraswathi Vadivel</h3><p>Founder</p></div>
-        <div className="team-member"><div className="team-avatar">👩‍💼</div><h3>Tamilarasu Vadivel</h3><p>CEO & CO-Founder</p></div>
-        <div className="team-member"><div className="team-avatar">👨‍🔬</div><h3></h3><p>Quality Director</p></div>
-        <div className="team-member"><div className="team-avatar">👩‍💻</div><h3></h3><p>Head of Technology</p></div>
+        <div className="team-member"><div className="team-avatar">👨‍💼</div><h3>Vadivel</h3><p>Founder</p></div>
+        <div className="team-member"><div className="team-avatar">👩‍💼</div><h3>Saraswathi Vadivel</h3><p>Founder</p></div>
+        <div className="team-member"><div className="team-avatar">👨‍💼</div><h3>Tamilarasu Vadivel</h3><p>CEO & Co-Founder</p></div>
       </div>
     </div>
   </div>
