@@ -1,7 +1,6 @@
 services:
   - type: web
     name: freshglobal-ecommerce
-    env: node
-    buildCommand: yarn install && yarn build
-    startCommand: yarn global add serve && serve -s build
+    env: static
+    buildCommand: npm install && npm run build
     staticPublishPath: ./build
