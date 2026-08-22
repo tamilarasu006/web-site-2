@@ -1,12 +1,13 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { loginLimiter, registerLimiter } = require('./middleware/rateLimiter');
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const productRoutes = require('./routes/products');
+const orderRoutes = require('./routes/orders');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +46,8 @@ app.get('/health', (_req, res) => res.json({ success: true, message: 'Server is 
 // ─── ROUTES ──────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
 
 // ─── 404 HANDLER ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
@@ -63,37 +66,50 @@ app.use((err, _req, res, _next) => {
 });
 
 // ─── DATABASE + START ────────────────────────────────────────────────────────
-async function seedAdmin() {
-  const User = require('./models/User');
-  const bcrypt = require('bcryptjs');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
+async function seedAdmin() {
+  const bcrypt = require('bcryptjs');
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@tamilarasuenterprises.com';
-  const existing = await User.findOne({ email: adminEmail });
-  if (!existing) {
-    const hashed = await bcrypt.hash('Admin@123456', 12);
-    await User.create({
-      name: 'Admin',
-      email: adminEmail,
-      password: hashed,
-      type: 'admin',
-      isVerified: true,
-    });
-    console.log(`[Seed] Admin user created: ${adminEmail}`);
+  
+  try {
+    const existing = await prisma.user.findUnique({ where: { email: adminEmail } });
+    if (!existing) {
+      const hashed = await bcrypt.hash('Admin@123456', 12);
+      await prisma.user.create({
+        data: {
+          name: 'Admin',
+          email: adminEmail,
+          password: hashed,
+          role: 'admin',
+        }
+      });
+      console.log(`[Seed] Admin user created: ${adminEmail}`);
+    }
+  } catch (error) {
+    console.error('[Seed] Error checking/creating admin user:', error.message);
   }
 }
 
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 10000,
-  })
-  .then(async () => {
-    console.log('[DB] MongoDB connected');
+async function startServer() {
+  try {
+    // Test Prisma connection
+    await prisma.$connect();
+    console.log('[DB] PostgreSQL connected via Prisma');
+    
     await seedAdmin();
+    
     app.listen(PORT, () => {
       console.log(`[Server] Running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error('[DB] Connection failed:', err.message);
     process.exit(1);
-  });
+  }
+}
+
+startServer();
+
+// Make prisma available globally if needed, or pass it into routes
+app.set('prisma', prisma);
